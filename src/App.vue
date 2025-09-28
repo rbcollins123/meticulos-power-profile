@@ -44,25 +44,25 @@
         Drag a point to adjust, or click a point to edit its values directly.<br>
         Double-click to add a point. Right-click a point to remove it.<br>
       </div>
-      <div class="mb-2 flex flex-col items-center">
-        <label class="font-semibold mb-1" for="interpolation-input">Interpolation (stages between points):</label>
+      <div class="mb-2 flex items-center justify-center gap-2">
+        <label class="font-semibold" for="interpolation-input">Interpolation (stages between points):</label>
         <input
           id="interpolation-input"
           type="number"
           min="1"
           v-model.number="interpolation"
-          class="border px-2 py-1 w-24 rounded text-center"
+          class="border px-2 py-1 w-16 rounded text-center"
         />
       </div>
-      <div class="mb-4 flex flex-col items-center">
-        <label class="font-semibold mb-1" for="max-pressure-input">Max pressure limit (bar):</label>
+      <div class="mb-4 flex items-center justify-center gap-2">
+        <label class="font-semibold" for="max-pressure-input">Max pressure limit (bar):</label>
         <input
           id="max-pressure-input"
           type="number"
           min="0"
           step="0.1"
           v-model.number="maxPressure"
-          class="border px-2 py-1 w-24 rounded text-center"
+          class="border px-2 py-1 w-16 rounded text-center"
         />
       </div>
       <div v-if="jsonOutput" class="mt-4">
