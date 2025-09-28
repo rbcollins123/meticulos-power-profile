@@ -42,7 +42,7 @@
           <div class="mb-1 font-semibold text-gray-700">Edit Point</div>
           <div class="flex gap-3 items-center">
             <label>
-              X (%):
+              X (s):
               <input type="number" min="0" max="100" v-model.number="editPos" @change="commitEdit('pos')" class="ml-1 w-20 border rounded px-1 py-0.5"/>
             </label>
             <label>
@@ -61,7 +61,10 @@
       <div class="mt-2 text-gray-600 text-sm text-center">
         Drag points to adjust.<br>
         Double-click to add a point. Right-click a point to remove it.<br>
-        Click a point to edit. Piston Position: 0–100% (X), Force: -3000 N (up) to +3000 N (down).
+        Click a point to edit.
+      </div>
+      <div class="mt-2 text-gray-600 text-sm text-center">
+        Legend: X-axis — Time (seconds); Y-axis — Force (Newtons)
       </div>
       <div v-if="jsonOutput" class="mt-4">
         <h3 class="font-semibold">Preview:</h3>
@@ -90,8 +93,8 @@ const curvePoints = ref([
 ]);
 let dragIndex = -1;
 
-const interpolation = ref(3);
-const maxPressure = ref(10);
+const interpolation = ref(5);
+const maxPressure = ref(9.5);
 
 const curveCanvas = ref(null);
 const jsonOutput = ref("");
@@ -330,7 +333,7 @@ function redraw() {
   ctx.font = "14px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(
-    "Piston Position (%)",
+    "Time (s)",
     canvasWidth / 2,
     canvasHeight - 4 + 24
   );
@@ -450,10 +453,11 @@ function exportJSON() {
       const pos0 = Math.round(prev.pos + (next.pos - prev.pos) * t0);
       const pos1 = Math.round(prev.pos + (next.pos - prev.pos) * t1);
       const force0 = prev.force + (next.force - prev.force) * t0;
+      const forceValue = Math.round(force0);
       const powerValue = forceToPower(force0);
 
       stages.push({
-        name: `Stage${stages.length + 1}`,
+        name: `${forceValue} N`,
         type: "power",
         dynamics: {
           points: [[0, powerValue]],
@@ -474,7 +478,7 @@ function exportJSON() {
             value: Number.isFinite(maxPressure.value) ? maxPressure.value : 10
           }
         ],
-        key: `power_${stages.length + 1}`
+        key: `power_${forceValue}_${stages.length + 1}`
       });
     }
   }
