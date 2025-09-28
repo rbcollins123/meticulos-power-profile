@@ -1,0 +1,23 @@
+# Node / Vite
+node_modules/
+dist/
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+
+# Editor directories
+.idea/
+.vscode/
+.DS_Store
+
+# Local tooling
+*.iml
+*.sw?
