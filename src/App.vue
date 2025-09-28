@@ -21,7 +21,7 @@
           <div class="mb-1 font-semibold text-gray-700">Edit Point</div>
           <div class="flex gap-3 items-center">
             <label>
-              X (s):
+              Piston Position (%):
               <input type="number" min="0" max="100" v-model.number="editPos" @change="commitEdit('pos')" class="ml-1 w-20 border rounded px-1 py-0.5"/>
             </label>
             <label>
@@ -33,7 +33,7 @@
         </div>
       </div>
       <div class="mt-2 text-gray-600 text-sm text-center">
-        Legend: X-axis — Time (seconds); Y-axis — Force (Newtons)
+        Legend: X-axis — Piston Position (% of travel); Y-axis — Force (Newtons)
       </div>
       <div class="mt-4 flex gap-4 justify-center">
         <button @click="addPoint" class="px-4 py-2 bg-blue-600 text-white rounded">Add Point</button>
@@ -86,9 +86,11 @@ const forceMax = 3000;
 
 const curvePoints = ref([
   { pos: 0, force: 3000 },
-  { pos: 15, force: 3000 },
-  { pos: 30, force: 2500 },
-  { pos: 45, force: 1750 }
+  { pos: 20, force: 2400 },
+  { pos: 40, force: 1800 },
+  { pos: 60, force: 1200 },
+  { pos: 80, force: 600 },
+  { pos: 100, force: 0 }
 ]);
 let dragIndex = -1;
 
@@ -332,7 +334,7 @@ function redraw() {
   ctx.font = "14px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(
-    "Time (s)",
+    "Piston Position (% of travel)",
     canvasWidth / 2,
     canvasHeight - 4 + 24
   );
