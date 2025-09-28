@@ -12,6 +12,17 @@
           class="border px-2 py-1 w-24 rounded text-center"
         />
       </div>
+      <div class="mb-4 flex flex-col items-center">
+        <label class="font-semibold mb-1" for="max-pressure-input">Max pressure limit (bar):</label>
+        <input
+          id="max-pressure-input"
+          type="number"
+          min="0"
+          step="0.1"
+          v-model.number="maxPressure"
+          class="border px-2 py-1 w-24 rounded text-center"
+        />
+      </div>
       <div class="flex flex-col items-center">
         <canvas
           ref="curveCanvas"
@@ -80,6 +91,7 @@ const curvePoints = ref([
 let dragIndex = -1;
 
 const interpolation = ref(3);
+const maxPressure = ref(10);
 
 const curveCanvas = ref(null);
 const jsonOutput = ref("");
@@ -459,7 +471,7 @@ function exportJSON() {
         limits: [
           {
             type: "pressure",
-            value: 10
+            value: Number.isFinite(maxPressure.value) ? maxPressure.value : 10
           }
         ],
         key: `power_${stages.length + 1}`
@@ -480,7 +492,7 @@ function exportJSON() {
         name: "Pressure Limit",
         key: "pressure_Pressure Limit",
         type: "pressure",
-        value: 10
+        value: Number.isFinite(maxPressure.value) ? maxPressure.value : 10
       }
     ],
     stages
