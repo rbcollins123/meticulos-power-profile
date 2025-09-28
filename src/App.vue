@@ -2,27 +2,6 @@
   <div class="outer-wrap">
     <div class="p-6 inner-content">
       <h2 class="text-xl font-bold mb-4 text-center">Meticulous Force Profile Designer</h2>
-      <div class="mb-2 flex flex-col items-center">
-        <label class="font-semibold mb-1" for="interpolation-input">Interpolation (stages between points):</label>
-        <input
-          id="interpolation-input"
-          type="number"
-          min="1"
-          v-model.number="interpolation"
-          class="border px-2 py-1 w-24 rounded text-center"
-        />
-      </div>
-      <div class="mb-4 flex flex-col items-center">
-        <label class="font-semibold mb-1" for="max-pressure-input">Max pressure limit (bar):</label>
-        <input
-          id="max-pressure-input"
-          type="number"
-          min="0"
-          step="0.1"
-          v-model.number="maxPressure"
-          class="border px-2 py-1 w-24 rounded text-center"
-        />
-      </div>
       <div class="flex flex-col items-center">
         <canvas
           ref="curveCanvas"
@@ -53,18 +32,38 @@
           </div>
         </div>
       </div>
+      <div class="mt-2 text-gray-600 text-sm text-center">
+        Legend: X-axis — Time (seconds); Y-axis — Force (Newtons)
+      </div>
       <div class="mt-4 flex gap-4 justify-center">
         <button @click="addPoint" class="px-4 py-2 bg-blue-600 text-white rounded">Add Point</button>
         <button @click="removePoint" class="px-4 py-2 bg-red-500 text-white rounded">Remove Point</button>
         <button @click="downloadJSON" class="px-4 py-2 bg-green-600 text-white rounded">Download JSON</button>
       </div>
       <div class="mt-2 text-gray-600 text-sm text-center">
-        Drag points to adjust.<br>
+        Drag a point to adjust, or click a point to edit its values directly.<br>
         Double-click to add a point. Right-click a point to remove it.<br>
-        Click a point to edit.
       </div>
-      <div class="mt-2 text-gray-600 text-sm text-center">
-        Legend: X-axis — Time (seconds); Y-axis — Force (Newtons)
+      <div class="mb-2 flex flex-col items-center">
+        <label class="font-semibold mb-1" for="interpolation-input">Interpolation (stages between points):</label>
+        <input
+          id="interpolation-input"
+          type="number"
+          min="1"
+          v-model.number="interpolation"
+          class="border px-2 py-1 w-24 rounded text-center"
+        />
+      </div>
+      <div class="mb-4 flex flex-col items-center">
+        <label class="font-semibold mb-1" for="max-pressure-input">Max pressure limit (bar):</label>
+        <input
+          id="max-pressure-input"
+          type="number"
+          min="0"
+          step="0.1"
+          v-model.number="maxPressure"
+          class="border px-2 py-1 w-24 rounded text-center"
+        />
       </div>
       <div v-if="jsonOutput" class="mt-4">
         <h3 class="font-semibold">Preview:</h3>
