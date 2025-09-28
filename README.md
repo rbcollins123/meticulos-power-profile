@@ -48,4 +48,4 @@ This repository ships with a GitHub Actions workflow that builds the Vite applic
 3. Submit a pull request describing your changes. Attach screenshots for UI updates when possible.
 
 ## License
-Distributed under the [MIT License](./LICENSE).
+Distributed under the [GNU GPL v3](./LICENSE).
