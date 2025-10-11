@@ -1,6 +1,9 @@
 <template>
   <div class="outer-wrap">
     <div class="p-6 inner-content">
+      <div class="mb-4 text-sm text-amber-900 bg-amber-100 border border-amber-300 rounded p-3">
+        ⚠️ Generated configurations can change how your espresso machine operates. Verify all settings before use. The developer assumes no responsibility for any outcome.
+      </div>
       <h2 class="text-xl font-bold mb-4 text-center">Meticulous Force Profile Designer</h2>
       <div class="flex flex-col items-center">
         <canvas
@@ -69,6 +72,16 @@
         <h3 class="font-semibold">Preview:</h3>
         <pre class="bg-gray-100 p-2 rounded">{{ jsonOutput }}</pre>
       </div>
+      <footer class="mt-8 text-center text-sm text-gray-600">
+        <a
+          href="https://github.com/meticulos-power-profile/meticulos-power-profile/blob/main/LICENSE"
+          class="text-blue-600 hover:underline"
+          target="_blank"
+          rel="noopener"
+        >
+          View project license
+        </a>
+      </footer>
     </div>
   </div>
 </template>
@@ -502,6 +515,8 @@ function exportJSON() {
       const forceValue = Math.round(force0);
       const powerValue = forceToPower(force0);
 
+      const comparison = force0 >= 0 ? ">=" : "<=";
+
       stages.push({
         name: `${forceValue} N`,
         type: "power",
@@ -514,7 +529,7 @@ function exportJSON() {
           {
             type: "piston_position",
             value: pos1,
-            comparison: ">=",
+            comparison,
             relative: false
           }
         ],
