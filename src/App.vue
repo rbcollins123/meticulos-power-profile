@@ -74,7 +74,7 @@
       </div>
       <footer class="mt-8 text-center text-sm text-gray-600">
         <a
-          href="https://github.com/meticulos-power-profile/meticulos-power-profile/blob/main/LICENSE"
+          href="https://github.com/rbcollins123/meticulos-power-profile/blob/main/LICENSE"
           class="text-blue-600 hover:underline"
           target="_blank"
           rel="noopener"
@@ -584,7 +584,7 @@ function generateUUIDv4() {
     for (i = 0; i < 36; i++) {
       if (i === 14) {
         uuid += "4";
-      } else if (i === 19) {
+      } else if (i === 19) 
         uuid += (8 + (Math.random() * 4 | 0)).toString(16);
       } else if ([8, 13, 18, 23].includes(i)) {
         uuid += "-";
