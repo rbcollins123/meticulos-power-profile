@@ -1,6 +1,9 @@
 <template>
   <div class="outer-wrap">
     <div class="p-6 inner-content">
+      <div class="mb-4 text-sm text-amber-900 bg-amber-100 border border-amber-300 rounded p-3">
+        ⚠️ Generated configurations can change how your espresso machine operates. Verify all settings before use. The developer assumes no responsibility for any outcome.
+      </div>
       <h2 class="text-xl font-bold mb-4 text-center">Meticulous Force Profile Designer</h2>
       <div class="flex flex-col items-center">
         <canvas
@@ -69,6 +72,16 @@
         <h3 class="font-semibold">Preview:</h3>
         <pre class="bg-gray-100 p-2 rounded">{{ jsonOutput }}</pre>
       </div>
+      <footer class="mt-8 text-center text-sm text-gray-600">
+        <a
+          href="https://github.com/meticulos-power-profile/meticulos-power-profile/blob/main/LICENSE"
+          class="text-blue-600 hover:underline"
+          target="_blank"
+          rel="noopener"
+        >
+          View project license
+        </a>
+      </footer>
     </div>
   </div>
 </template>
@@ -93,6 +106,37 @@ const curvePoints = ref([
   { pos: 100, force: 0 }
 ]);
 let dragIndex = -1;
+
+function getAllowedRange(index, forceValue = curvePoints.value[index]?.force ?? 0, points = curvePoints.value) {
+  let minPos = pistonMin;
+  let maxPos = pistonMax;
+
+  const prev = points[index - 1];
+  if (prev) {
+    if (forceValue >= 0) {
+      minPos = Math.max(minPos, prev.pos);
+    } else {
+      maxPos = Math.min(maxPos, prev.pos);
+    }
+  }
+
+  const next = points[index + 1];
+  if (next) {
+    if (next.force >= 0) {
+      maxPos = Math.min(maxPos, next.pos);
+    } else {
+      minPos = Math.max(minPos, next.pos);
+    }
+  }
+
+  if (minPos > maxPos) {
+    const midpoint = (minPos + maxPos) / 2;
+    minPos = midpoint;
+    maxPos = midpoint;
+  }
+
+  return { minPos, maxPos };
+}
 
 const interpolation = ref(5);
 const maxPressure = ref(9.5);
@@ -126,15 +170,8 @@ function commitEdit(field) {
   if (selectedIdx.value === null) return;
   let newPos = Math.max(pistonMin, Math.min(pistonMax, editPos.value));
   let newForce = Math.max(forceMin, Math.min(forceMax, editForce.value));
-  // Prevent overlap with neighbor points on X (no same pos)
-  if (
-    (selectedIdx.value > 0 && newPos <= curvePoints.value[selectedIdx.value - 1].pos) ||
-    (selectedIdx.value < curvePoints.value.length - 1 && newPos >= curvePoints.value[selectedIdx.value + 1].pos)
-  ) {
-    // Snap back to old value if invalid
-    editPos.value = curvePoints.value[selectedIdx.value].pos;
-    return;
-  }
+  const { minPos, maxPos } = getAllowedRange(selectedIdx.value, newForce);
+  newPos = Math.max(minPos, Math.min(maxPos, newPos));
   curvePoints.value[selectedIdx.value] = { pos: newPos, force: newForce };
   // Ensure edit fields match clipped/stored values
   editPos.value = newPos;
@@ -367,10 +404,26 @@ function addPointAtCursor(e) {
   let force = Math.round(yToForce(my));
   pos = Math.max(pistonMin, Math.min(pistonMax, pos));
   force = Math.max(forceMin, Math.min(forceMax, force));
-  if (curvePoints.value.some(pt => pt.pos === pos)) return;
-  let insertIdx = curvePoints.value.findIndex(pt => pt.pos > pos);
-  if (insertIdx === -1) insertIdx = curvePoints.value.length;
-  curvePoints.value.splice(insertIdx, 0, { pos, force });
+  if (curvePoints.value.some(pt => pt.pos === pos && pt.force === force)) return;
+  let insertIdx = curvePoints.value.length;
+  if (curvePoints.value.length > 0) {
+    let closestIdx = 0;
+    let closestDist = Infinity;
+    curvePoints.value.forEach((pt, idx) => {
+      const dist = Math.abs(pt.pos - pos) + Math.abs(pt.force - force) * 0.01;
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIdx = idx;
+      }
+    });
+    insertIdx = pos >= curvePoints.value[closestIdx].pos ? closestIdx + 1 : closestIdx;
+  }
+  const tempPoints = [...curvePoints.value];
+  tempPoints.splice(insertIdx, 0, { pos, force });
+  const { minPos, maxPos } = getAllowedRange(insertIdx, force, tempPoints);
+  pos = Math.max(minPos, Math.min(maxPos, pos));
+  tempPoints[insertIdx] = { pos, force };
+  curvePoints.value.splice(0, curvePoints.value.length, ...tempPoints);
 }
 
 function removePointAtCursor(e) {
@@ -398,10 +451,10 @@ function onDrag(e) {
   let y = e.clientY - rect.top;
   x = Math.max(margin, Math.min(canvasWidth - margin, x));
   y = Math.max(margin, Math.min(canvasHeight - margin, y));
-  const pos = Math.max(0, Math.min(100, xToPos(x)));
+  const rawPos = Math.max(0, Math.min(100, xToPos(x)));
   const force = Math.max(forceMin, Math.min(forceMax, yToForce(y)));
-  if (dragIndex > 0 && pos <= curvePoints.value[dragIndex - 1].pos) return;
-  if (dragIndex < curvePoints.value.length - 1 && pos >= curvePoints.value[dragIndex + 1].pos) return;
+  const { minPos, maxPos } = getAllowedRange(dragIndex, force);
+  const pos = Math.max(minPos, Math.min(maxPos, rawPos));
   curvePoints.value[dragIndex] = { pos, force };
   if (selectedIdx.value === dragIndex) {
     editPos.value = pos;
@@ -416,7 +469,7 @@ function endDrag() {
 function addPoint() {
   let maxGap = 0, insertIdx = 1;
   for (let i = 1; i < curvePoints.value.length; i++) {
-    const gap = curvePoints.value[i].pos - curvePoints.value[i-1].pos;
+    const gap = Math.abs(curvePoints.value[i].pos - curvePoints.value[i-1].pos);
     if (gap > maxGap) {
       maxGap = gap;
       insertIdx = i;
@@ -426,7 +479,12 @@ function addPoint() {
   const next = curvePoints.value[insertIdx];
   const newPos = Math.round((prev.pos + next.pos) / 2);
   const newForce = Math.round((prev.force + next.force) / 2);
-  curvePoints.value.splice(insertIdx, 0, { pos: newPos, force: newForce });
+  const tempPoints = [...curvePoints.value];
+  tempPoints.splice(insertIdx, 0, { pos: newPos, force: newForce });
+  const { minPos, maxPos } = getAllowedRange(insertIdx, newForce, tempPoints);
+  const clampedPos = Math.max(minPos, Math.min(maxPos, newPos));
+  tempPoints[insertIdx] = { pos: clampedPos, force: newForce };
+  curvePoints.value.splice(0, curvePoints.value.length, ...tempPoints);
 }
 
 function removePoint() {
@@ -457,6 +515,8 @@ function exportJSON() {
       const forceValue = Math.round(force0);
       const powerValue = forceToPower(force0);
 
+      const comparison = force0 >= 0 ? ">=" : "<=";
+
       stages.push({
         name: `${forceValue} N`,
         type: "power",
@@ -469,7 +529,7 @@ function exportJSON() {
           {
             type: "piston_position",
             value: pos1,
-            comparison: ">=",
+            comparison,
             relative: false
           }
         ],
