@@ -169,9 +169,7 @@ const editPos = ref(0);
 const editForce = ref(0);
 
 function onCanvasClick(e) {
-  const rect = curveCanvas.value.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const { x: mx, y: my } = getCanvasCoordinates(e);
   const idx = curvePoints.value.findIndex(
     (pt) =>
       Math.abs(posToX(pt.pos) - mx) < 12 && Math.abs(forceToY(pt.force) - my) < 12
@@ -446,19 +444,25 @@ onUnmounted(() => {
 });
 
 function getPointAtCursor(e) {
-  const rect = curveCanvas.value.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const { x: mx, y: my } = getCanvasCoordinates(e);
   return curvePoints.value.findIndex(
     (pt) =>
       Math.abs(posToX(pt.pos) - mx) < 12 && Math.abs(forceToY(pt.force) - my) < 12
   );
 }
 
-function addPointAtCursor(e) {
+function getCanvasCoordinates(e) {
   const rect = curveCanvas.value.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const scaleX = rect.width ? canvasWidth.value / rect.width : 1;
+  const scaleY = rect.height ? canvasHeight.value / rect.height : 1;
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY
+  };
+}
+
+function addPointAtCursor(e) {
+  const { x: mx, y: my } = getCanvasCoordinates(e);
   let pos = Math.round(xToPos(mx));
   let force = Math.round(yToForce(my));
   pos = Math.max(pistonMin, Math.min(pistonMax, pos));
@@ -486,9 +490,7 @@ function addPointAtCursor(e) {
 }
 
 function removePointAtCursor(e) {
-  const rect = curveCanvas.value.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const { x: mx, y: my } = getCanvasCoordinates(e);
   const idx = curvePoints.value.findIndex(
     (pt) =>
       Math.abs(posToX(pt.pos) - mx) < 12 && Math.abs(forceToY(pt.force) - my) < 12
@@ -505,9 +507,7 @@ function startDrag(e) {
 
 function onDrag(e) {
   if (dragIndex === -1) return;
-  const rect = curveCanvas.value.getBoundingClientRect();
-  let x = e.clientX - rect.left;
-  let y = e.clientY - rect.top;
+  let { x, y } = getCanvasCoordinates(e);
   x = Math.max(margin, Math.min(canvasWidth.value - margin, x));
   y = Math.max(margin, Math.min(canvasHeight.value - margin, y));
   const rawPos = Math.max(0, Math.min(100, xToPos(x)));
