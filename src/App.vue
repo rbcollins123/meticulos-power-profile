@@ -41,6 +41,7 @@
       <div class="mt-4 flex gap-4 justify-center">
         <button @click="addPoint" class="px-4 py-2 bg-blue-600 text-white rounded">Add Point</button>
         <button @click="removePoint" class="px-4 py-2 bg-red-500 text-white rounded">Remove Point</button>
+        <button @click="resetGraph" class="px-4 py-2 bg-gray-200 text-gray-800 rounded">Reset Graph</button>
         <button @click="downloadJSON" class="px-4 py-2 bg-green-600 text-white rounded">Download JSON</button>
       </div>
       <div class="mt-2 text-gray-600 text-sm text-center">
@@ -111,14 +112,15 @@ const pistonMax = 100;
 const forceMin = -3000;
 const forceMax = 3000;
 
-const curvePoints = ref([
+const defaultCurvePoints = [
   { pos: 0, force: 3000 },
   { pos: 20, force: 2400 },
   { pos: 40, force: 1800 },
   { pos: 60, force: 1200 },
   { pos: 80, force: 600 },
   { pos: 100, force: 0 }
-]);
+];
+const curvePoints = ref(defaultCurvePoints.map(point => ({ ...point })));
 let dragIndex = -1;
 
 function getAllowedRange(index, forceValue = curvePoints.value[index]?.force ?? 0, points = curvePoints.value) {
@@ -159,6 +161,7 @@ const positionMode = ref("relative");
 const curveCanvas = ref(null);
 const jsonOutput = ref("");
 const canvasContainer = ref(null);
+const profileStateCookie = "meticulous-force-profile-state";
 
 // --- Editing state for a point ---
 const selectedIdx = ref(null);
@@ -408,6 +411,9 @@ function redraw() {
 
 watch([curvePoints, interpolation], () => nextTick().then(redraw), { deep: true });
 watch([canvasWidth, canvasHeight], () => nextTick().then(redraw));
+watch([curvePoints, interpolation, maxPressure, positionMode], () => {
+  saveProfileState();
+}, { deep: true });
 
 function updateCanvasSize() {
   if (!canvasContainer.value) return;
@@ -422,6 +428,7 @@ function updateCanvasSize() {
 
 let resizeObserver;
 onMounted(() => {
+  loadProfileState();
   updateCanvasSize();
   resizeObserver = new ResizeObserver(() => {
     updateCanvasSize();
@@ -657,6 +664,62 @@ function downloadJSON() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+function resetGraph() {
+  curvePoints.value.splice(
+    0,
+    curvePoints.value.length,
+    ...defaultCurvePoints.map(point => ({ ...point }))
+  );
+  selectedIdx.value = null;
+}
+
+function saveProfileState() {
+  if (typeof document === "undefined") return;
+  const payload = {
+    curvePoints: curvePoints.value,
+    interpolation: interpolation.value,
+    maxPressure: maxPressure.value,
+    positionMode: positionMode.value
+  };
+  const serialized = encodeURIComponent(JSON.stringify(payload));
+  const maxAge = 60 * 60 * 24 * 30;
+  document.cookie = `${profileStateCookie}=${serialized}; max-age=${maxAge}; path=/; samesite=lax`;
+}
+
+function loadProfileState() {
+  if (typeof document === "undefined") return;
+  const cookieEntry = document.cookie
+    .split("; ")
+    .find(entry => entry.startsWith(`${profileStateCookie}=`));
+  if (!cookieEntry) return;
+  const value = cookieEntry.slice(profileStateCookie.length + 1);
+  try {
+    const parsed = JSON.parse(decodeURIComponent(value));
+    if (Array.isArray(parsed.curvePoints) && parsed.curvePoints.length >= 2) {
+      const sanitizedPoints = parsed.curvePoints
+        .filter(point => Number.isFinite(point.pos) && Number.isFinite(point.force))
+        .map(point => ({
+          pos: Math.max(pistonMin, Math.min(pistonMax, Math.round(point.pos))),
+          force: Math.max(forceMin, Math.min(forceMax, Math.round(point.force)))
+        }));
+      if (sanitizedPoints.length >= 2) {
+        curvePoints.value.splice(0, curvePoints.value.length, ...sanitizedPoints);
+      }
+    }
+    if (Number.isFinite(parsed.interpolation)) {
+      interpolation.value = Math.max(1, Math.floor(parsed.interpolation));
+    }
+    if (Number.isFinite(parsed.maxPressure)) {
+      maxPressure.value = parsed.maxPressure;
+    }
+    if (parsed.positionMode === "relative" || parsed.positionMode === "absolute") {
+      positionMode.value = parsed.positionMode;
+    }
+  } catch (error) {
+    console.warn("Failed to load profile state from cookie.", error);
+  }
 }
 
 </script>
