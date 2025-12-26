@@ -1,6 +1,6 @@
 <template>
   <div class="outer-wrap">
-    <div class="p-6 inner-content">
+    <div class="p-6 inner-content" ref="canvasContainer">
       <div class="mb-4 text-sm text-amber-900 bg-amber-100 border border-amber-300 rounded p-3">
         ⚠️ Generated configurations can change how your espresso machine operates. Verify all settings before use. The developer assumes no responsibility for any outcome.
       </div>
@@ -8,9 +8,9 @@
       <div class="flex flex-col items-center">
         <canvas
           ref="curveCanvas"
-          width="600"
-          height="320"
-          class="border rounded shadow"
+          :width="canvasWidth"
+          :height="canvasHeight"
+          class="border rounded shadow curve-canvas"
           @mousedown="startDrag"
           @mousemove="onDrag"
           @mouseup="endDrag"
@@ -98,10 +98,13 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from "vue";
+import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 
-const canvasWidth = 600;
-const canvasHeight = 320;
+const canvasWidth = ref(600);
+const canvasHeight = ref(320);
+const canvasAspectRatio = 320 / 600;
+const minCanvasWidth = 320;
+const minCanvasHeight = 200;
 const margin = 60;
 const pistonMin = 0;
 const pistonMax = 100;
@@ -155,6 +158,7 @@ const positionMode = ref("relative");
 
 const curveCanvas = ref(null);
 const jsonOutput = ref("");
+const canvasContainer = ref(null);
 
 // --- Editing state for a point ---
 const selectedIdx = ref(null);
@@ -224,33 +228,40 @@ function drawStepLine(ctx, points, color, width = 3, alpha = 1.0, dash = []) {
 }
 
 function posToX(pos) {
-  return margin + ((pos - pistonMin) / (pistonMax - pistonMin)) * (canvasWidth - 2 * margin);
+  return (
+    margin
+    + ((pos - pistonMin) / (pistonMax - pistonMin)) * (canvasWidth.value - 2 * margin)
+  );
 }
 function forceToY(force) {
-  return canvasHeight - margin - ((force - forceMin) / (forceMax - forceMin)) * (canvasHeight - 2 * margin);
+  return (
+    canvasHeight.value
+    - margin
+    - ((force - forceMin) / (forceMax - forceMin)) * (canvasHeight.value - 2 * margin)
+  );
 }
 function xToPos(x) {
   return Math.round(
-    ((x - margin) / (canvasWidth - 2 * margin)) * (pistonMax - pistonMin) + pistonMin
+    ((x - margin) / (canvasWidth.value - 2 * margin)) * (pistonMax - pistonMin) + pistonMin
   );
 }
 function yToForce(y) {
   return Math.round(
-    ((canvasHeight - margin - y) / (canvasHeight - 2 * margin)) * (forceMax - forceMin) + forceMin
+    ((canvasHeight.value - margin - y) / (canvasHeight.value - 2 * margin)) * (forceMax - forceMin) + forceMin
   );
 }
 
 function redraw() {
   const ctx = curveCanvas.value.getContext("2d");
-  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value);
 
   // Draw axes
   ctx.strokeStyle = "#aaa";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(margin, margin);
-  ctx.lineTo(margin, canvasHeight - margin);
-  ctx.lineTo(canvasWidth - margin, canvasHeight - margin);
+  ctx.lineTo(margin, canvasHeight.value - margin);
+  ctx.lineTo(canvasWidth.value - margin, canvasHeight.value - margin);
   ctx.stroke();
 
   // Draw X-axis ticks (every 1% and 10%)
@@ -260,19 +271,19 @@ function redraw() {
     if (i % 10 === 0) {
       ctx.strokeStyle = "#555";
       ctx.lineWidth = 2;
-      ctx.moveTo(x, canvasHeight - margin);
-      ctx.lineTo(x, canvasHeight - margin + 14);
+      ctx.moveTo(x, canvasHeight.value - margin);
+      ctx.lineTo(x, canvasHeight.value - margin + 14);
       ctx.stroke();
 
       ctx.fillStyle = "#333";
       ctx.font = "12px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(i.toString(), x, canvasHeight - margin + 28);
+      ctx.fillText(i.toString(), x, canvasHeight.value - margin + 28);
     } else {
       ctx.strokeStyle = "#bbb";
       ctx.lineWidth = 1;
-      ctx.moveTo(x, canvasHeight - margin);
-      ctx.lineTo(x, canvasHeight - margin + 7);
+      ctx.moveTo(x, canvasHeight.value - margin);
+      ctx.lineTo(x, canvasHeight.value - margin + 7);
       ctx.stroke();
     }
   }
@@ -312,7 +323,7 @@ function redraw() {
   const yZero = forceToY(0);
   ctx.beginPath();
   ctx.moveTo(margin, yZero);
-  ctx.lineTo(canvasWidth - margin, yZero);
+  ctx.lineTo(canvasWidth.value - margin, yZero);
   ctx.strokeStyle = "#d0d0d0";
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 4]);
@@ -384,11 +395,11 @@ function redraw() {
   ctx.textAlign = "center";
   ctx.fillText(
     "Piston Position (% of travel)",
-    canvasWidth / 2,
-    canvasHeight - 4 + 24
+    canvasWidth.value / 2,
+    canvasHeight.value - 4 + 24
   );
   ctx.save();
-  ctx.translate(-36, canvasHeight / 2 + 40);
+  ctx.translate(-36, canvasHeight.value / 2 + 40);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = "center";
   ctx.fillText("Force (N)", 0, 0);
@@ -396,7 +407,36 @@ function redraw() {
 }
 
 watch([curvePoints, interpolation], () => nextTick().then(redraw), { deep: true });
-onMounted(() => nextTick().then(redraw));
+watch([canvasWidth, canvasHeight], () => nextTick().then(redraw));
+
+function updateCanvasSize() {
+  if (!canvasContainer.value) return;
+  const rect = canvasContainer.value.getBoundingClientRect();
+  const nextWidth = Math.max(minCanvasWidth, Math.floor(rect.width));
+  const nextHeight = Math.max(minCanvasHeight, Math.floor(nextWidth * canvasAspectRatio));
+  if (nextWidth !== canvasWidth.value || nextHeight !== canvasHeight.value) {
+    canvasWidth.value = nextWidth;
+    canvasHeight.value = nextHeight;
+  }
+}
+
+let resizeObserver;
+onMounted(() => {
+  updateCanvasSize();
+  resizeObserver = new ResizeObserver(() => {
+    updateCanvasSize();
+  });
+  if (canvasContainer.value) {
+    resizeObserver.observe(canvasContainer.value);
+  }
+  nextTick().then(redraw);
+});
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
 
 function getPointAtCursor(e) {
   const rect = curveCanvas.value.getBoundingClientRect();
@@ -461,8 +501,8 @@ function onDrag(e) {
   const rect = curveCanvas.value.getBoundingClientRect();
   let x = e.clientX - rect.left;
   let y = e.clientY - rect.top;
-  x = Math.max(margin, Math.min(canvasWidth - margin, x));
-  y = Math.max(margin, Math.min(canvasHeight - margin, y));
+  x = Math.max(margin, Math.min(canvasWidth.value - margin, x));
+  y = Math.max(margin, Math.min(canvasHeight.value - margin, y));
   const rawPos = Math.max(0, Math.min(100, xToPos(x)));
   const force = Math.max(forceMin, Math.min(forceMax, yToForce(y)));
   const { minPos, maxPos } = getAllowedRange(dragIndex, force);
@@ -620,3 +660,10 @@ function downloadJSON() {
 }
 
 </script>
+
+<style scoped>
+.curve-canvas {
+  width: 100%;
+  height: auto;
+}
+</style>
