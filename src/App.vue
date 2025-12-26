@@ -68,6 +68,17 @@
           class="border px-2 py-1 w-16 rounded text-center"
         />
       </div>
+      <div class="mb-4 flex flex-wrap items-center justify-center gap-4">
+        <span class="font-semibold">Piston position export:</span>
+        <label class="flex items-center gap-2">
+          <input type="radio" name="position-mode" value="relative" v-model="positionMode" />
+          Relative
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="radio" name="position-mode" value="absolute" v-model="positionMode" />
+          Absolute
+        </label>
+      </div>
       <div v-if="jsonOutput" class="mt-4">
         <h3 class="font-semibold">Preview:</h3>
         <pre class="bg-gray-100 p-2 rounded">{{ jsonOutput }}</pre>
@@ -140,6 +151,7 @@ function getAllowedRange(index, forceValue = curvePoints.value[index]?.force ?? 
 
 const interpolation = ref(5);
 const maxPressure = ref(9.5);
+const positionMode = ref("relative");
 
 const curveCanvas = ref(null);
 const jsonOutput = ref("");
@@ -530,7 +542,7 @@ function exportJSON() {
             type: "piston_position",
             value: pos1,
             comparison,
-            relative: false
+            relative: positionMode.value === "relative"
           }
         ],
         limits: [
