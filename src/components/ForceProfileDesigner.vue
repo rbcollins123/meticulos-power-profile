@@ -87,6 +87,9 @@
       <h3 class="font-semibold">Preview:</h3>
       <pre class="bg-gray-100 p-2 rounded">{{ jsonOutput }}</pre>
     </div>
+    <div v-if="jsonError" class="mt-2 text-sm text-red-600 text-center">
+      Validation failed: {{ jsonError }}
+    </div>
     <footer class="mt-8 text-center text-sm text-gray-600">
       <a
         href="https://github.com/rbcollins123/meticulos-power-profile/blob/main/LICENSE"
@@ -102,6 +105,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick, computed } from "vue";
+import { validateProfile } from "../utils/profileValidator.js";
 
 const canvasWidth = ref(600);
 const canvasHeight = ref(320);
@@ -162,6 +166,7 @@ const positionMode = ref("relative");
 
 const curveCanvas = ref(null);
 const jsonOutput = ref("");
+const jsonError = ref(null);
 const canvasContainer = ref(null);
 const profileStateCookie = "meticulous-force-profile-state";
 const profileStageCount = computed(() => {
@@ -633,7 +638,15 @@ function exportJSON() {
     ],
     stages
   };
+  const { valid, errors } = validateProfile(profile);
+  if (!valid) {
+    jsonError.value = formatValidationErrors(errors);
+    jsonOutput.value = "";
+    return false;
+  }
+  jsonError.value = null;
   jsonOutput.value = JSON.stringify(profile, null, 2);
+  return true;
 }
 
 function generateUUIDv4() {
@@ -668,7 +681,7 @@ function generateUUIDv4() {
 }
 
 function downloadJSON() {
-  exportJSON();
+  if (!exportJSON()) return;
   const blob = new Blob([jsonOutput.value], { type: "application/json" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -683,9 +696,18 @@ function viewJSON() {
 }
 
 function refreshPreviewIfVisible() {
-  if (jsonOutput.value) {
+  if (jsonOutput.value || jsonError.value) {
     exportJSON();
   }
+}
+
+function formatValidationErrors(errors) {
+  if (!errors || errors.length === 0) {
+    return "Unknown schema validation error.";
+  }
+  return errors
+    .map(error => `${error.instancePath || "/"} ${error.message}`)
+    .join("; ");
 }
 
 function resetGraph() {
