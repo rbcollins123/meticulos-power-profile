@@ -163,6 +163,7 @@ function getAllowedRange(index, forceValue = curvePoints.value[index]?.force ?? 
 const interpolation = ref(5);
 const maxPressure = ref(9.5);
 const positionMode = ref("relative");
+const pressureLimitVariableKey = "pressure_Pressure Limit";
 
 const curveCanvas = ref(null);
 const jsonOutput = ref("");
@@ -612,7 +613,7 @@ function exportJSON() {
         limits: [
           {
             type: "pressure",
-            value: Number.isFinite(maxPressure.value) ? maxPressure.value : 10
+            value: variableReference(pressureLimitVariableKey)
           }
         ],
         key: `power_${forceValue}_${stages.length + 1}`
@@ -631,7 +632,7 @@ function exportJSON() {
     variables: [
       {
         name: "Pressure Limit",
-        key: "pressure_Pressure Limit",
+        key: pressureLimitVariableKey,
         type: "pressure",
         value: Number.isFinite(maxPressure.value) ? maxPressure.value : 10
       }
@@ -699,6 +700,10 @@ function refreshPreviewIfVisible() {
   if (jsonOutput.value || jsonError.value) {
     exportJSON();
   }
+}
+
+function variableReference(key) {
+  return `$${key}`;
 }
 
 function formatValidationErrors(errors) {

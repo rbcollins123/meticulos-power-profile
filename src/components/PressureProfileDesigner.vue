@@ -810,7 +810,7 @@ function exportJSON() {
       limits: [
         {
           type: "pressure",
-          value: Number.isFinite(maxPressure.value) ? maxPressure.value : 10
+          value: variableReference(pressureLimitVariableKey)
         }
       ],
       key: `power_${pressureValue}_${stages.length + 1}`
