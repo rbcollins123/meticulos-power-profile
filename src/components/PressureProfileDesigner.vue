@@ -771,11 +771,15 @@ function exportJSON() {
       exit_triggers: [
         {
           type: "time",
-          value: variableReference(preinfusionDurationVariableKey)
+          value: variableReference(preinfusionDurationVariableKey),
+          comparison: ">=",
+          relative: false
         },
         {
           type: "weight",
-          value: variableReference(preinfusionWeightVariableKey)
+          value: variableReference(preinfusionWeightVariableKey),
+          comparison: ">=",
+          relative: false
         }
       ],
       key: `pressure_preinfusion_${stages.length + 1}`
@@ -785,12 +789,17 @@ function exportJSON() {
   for (let i = 1; i < interpolatedPoints.length; i++) {
     const prev = interpolatedPoints[i - 1];
     const next = interpolatedPoints[i];
+    const pos0 = Math.round(prev.pos);
     const pos1 = Math.round(next.pos);
     const translatedPressure = translatePressure(prev.pressure);
     const force0 = pressureToForce(translatedPressure);
     const powerValue = forceToPower(force0);
     const pressureValue = formatPressure(translatedPressure);
 
+    const exitValue =
+      positionMode.value === "relative"
+        ? Math.max(0, pos1 - pos0)
+        : pos1;
     stages.push({
       name: `${pressureValue} bar`,
       type: "power",
@@ -802,7 +811,7 @@ function exportJSON() {
       exit_triggers: [
         {
           type: "piston_position",
-          value: pos1,
+          value: exitValue,
           comparison: ">=",
           relative: positionMode.value === "relative"
         }

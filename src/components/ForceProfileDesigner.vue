@@ -594,6 +594,10 @@ function exportJSON() {
 
       const comparison = force0 >= 0 ? ">=" : "<=";
 
+      const exitValue =
+        positionMode.value === "relative"
+          ? Math.max(0, pos1 - pos0)
+          : pos1;
       stages.push({
         name: `${forceValue} N`,
         type: "power",
@@ -605,7 +609,7 @@ function exportJSON() {
         exit_triggers: [
           {
             type: "piston_position",
-            value: pos1,
+            value: exitValue,
             comparison,
             relative: positionMode.value === "relative"
           }
